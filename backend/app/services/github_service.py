@@ -14,9 +14,6 @@ class GitHubService:
 
     async def install_webhook(self, access_token: str, full_name: str) -> Optional[int]:
         """Install our webhook on a GitHub repository. Returns webhook ID."""
-        webhook_url = f"{settings.FRONTEND_URL.rstrip('/')}/api/github/webhook".replace(
-            "localhost:3000", "localhost:8000"
-        )
         # In production use your real public URL; in dev use ngrok URL
         webhook_url = f"http://localhost:8000/api/v1/github/webhook"
 
