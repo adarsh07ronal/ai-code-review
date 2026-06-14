@@ -24,6 +24,9 @@ AsyncSessionLocal = async_sessionmaker(
     autoflush=False,
 )
 
+# Alias used by background workers that manage their own sessions
+AsyncSessionFactory = AsyncSessionLocal
+
 
 async def init_db() -> None:
     """Create all tables (use Alembic for production migrations)."""

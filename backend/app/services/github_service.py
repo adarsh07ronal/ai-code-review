@@ -132,10 +132,14 @@ class GitHubService:
 
     async def queue_review(self, pr_id: int):
         """
-        Queue a PR for AI review.
-        Phase 3 will replace this stub with a real Redis job queue.
+        Kick off the AI review pipeline for a PR as a background asyncio task.
+        The worker runs independently so the webhook handler can return 200 immediately.
         """
-        log.info("PR queued for AI review (stub)", pr_id=pr_id)
+        import asyncio
+        from app.services.review_worker import review_worker
+
+        log.info("Queuing PR for AI review", pr_id=pr_id)
+        asyncio.create_task(review_worker.run(pr_id))
 
 
 github_service = GitHubService()

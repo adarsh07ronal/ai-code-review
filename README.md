@@ -60,7 +60,7 @@ docker compose exec backend alembic upgrade head
 ## Development Phases
 
 - [x] Phase 1: Auth + DB scaffold
-- [ ] Phase 2: GitHub OAuth + Webhook
-- [ ] Phase 3: AI Review Engine
+- [x] Phase 2: GitHub OAuth + Webhook
+- [x] Phase 3: AI Review Engine
 - [ ] Phase 4: Frontend Dashboard
 - [ ] Phase 5: Stripe + GCP Deploy
