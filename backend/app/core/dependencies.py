@@ -56,3 +56,37 @@ async def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
     return user
+
+
+# ── Organization RBAC ────────────────────────────────────────────────────────
+
+async def get_org_membership(
+    org_id: int,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resolve the current user's membership in `org_id` (path param). 403 if not a member."""
+    from sqlalchemy import select
+    from app.models.review import OrganizationMember
+
+    result = await db.execute(
+        select(OrganizationMember).where(
+            OrganizationMember.organization_id == org_id,
+            OrganizationMember.user_id == current_user.id,
+        )
+    )
+    membership = result.scalar_one_or_none()
+    if not membership:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this organization")
+    return membership
+
+
+def require_org_role(*allowed_roles):
+    """Dependency factory: only members whose role is in `allowed_roles` may proceed."""
+
+    async def checker(membership=Depends(get_org_membership)):
+        if membership.role not in allowed_roles:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient organization role")
+        return membership
+
+    return checker

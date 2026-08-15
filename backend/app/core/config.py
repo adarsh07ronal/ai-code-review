@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     # Stripe
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_PRICE_ID_PRO: str = ""
+    STRIPE_PRICE_ID_TEAM: str = ""
 
     # CORS — add your frontend origins
     CORS_ORIGINS: List[str] = [

@@ -1,20 +1,21 @@
 "use client";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuthStore } from "@/lib/store";
-import { LogOut, GitPullRequest, Code2 } from "lucide-react";
+import { LogOut, GitPullRequest, Code2, CreditCard, Users } from "lucide-react";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, logout, loadMe, loading } = useAuthStore();
+  const { user, logout, loadMe, loading, checked } = useAuthStore();
 
   useEffect(() => {
     loadMe();
   }, [loadMe]);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/auth/login");
-  }, [user, loading, router]);
+    if (checked && !user) router.replace("/auth/login");
+  }, [user, checked, router]);
 
   if (loading || !user) {
     return (
@@ -36,12 +37,20 @@ export default function DashboardPage() {
             <span className="font-semibold text-gray-900">Code Review</span>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/dashboard/team" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              Team
+            </Link>
+            <Link href="/dashboard/billing" className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1">
+              <CreditCard className="h-4 w-4" />
+              Billing
+            </Link>
             <span className="text-sm text-gray-500">
               {user.display_name ?? user.username}
             </span>
-            <span className="badge bg-brand-100 text-brand-700 capitalize">
+            <Link href="/dashboard/billing" className="badge bg-brand-100 text-brand-700 capitalize hover:bg-brand-200">
               {user.subscription_tier}
-            </span>
+            </Link>
             <button
               onClick={() => { logout(); router.push("/auth/login"); }}
               className="text-gray-400 hover:text-gray-600"

@@ -107,3 +107,45 @@ export const authApi = {
   githubTokenExchange: (code: string) =>
     api.post("/auth/github/token", { code }),
 };
+
+// ── Billing API calls ─────────────────────────────────────────────────────
+export const billingApi = {
+  checkout: (tier: "pro" | "team") =>
+    api.post<{ checkout_url: string }>("/billing/checkout", { tier }),
+
+  portal: () => api.post<{ portal_url: string }>("/billing/portal"),
+};
+
+// ── Organizations API calls ───────────────────────────────────────────────
+export type OrgRole = "owner" | "admin" | "member";
+
+export type Organization = {
+  id: number;
+  name: string;
+  display_name: string | null;
+};
+
+export type OrgMember = {
+  user_id: number;
+  username: string;
+  email: string;
+  role: OrgRole;
+};
+
+export const orgApi = {
+  list: () => api.get<Organization[]>("/organizations"),
+
+  create: (name: string, display_name?: string) =>
+    api.post<Organization>("/organizations", { name, display_name }),
+
+  members: (orgId: number) => api.get<OrgMember[]>(`/organizations/${orgId}/members`),
+
+  invite: (orgId: number, email: string, role: OrgRole = "member") =>
+    api.post<OrgMember>(`/organizations/${orgId}/members`, { email, role }),
+
+  updateRole: (orgId: number, userId: number, role: OrgRole) =>
+    api.patch<OrgMember>(`/organizations/${orgId}/members/${userId}`, { role }),
+
+  removeMember: (orgId: number, userId: number) =>
+    api.delete(`/organizations/${orgId}/members/${userId}`),
+};

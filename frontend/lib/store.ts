@@ -14,6 +14,7 @@ interface User {
 interface AuthState {
   user: User | null;
   loading: boolean;
+  checked: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, username: string, password: string) => Promise<void>;
   logout: () => void;
@@ -24,6 +25,9 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   loading: false,
+  // Distinguishes "haven't checked auth yet" from "checked, no user" — pages
+  // use this to avoid redirecting to login before loadMe() has resolved.
+  checked: false,
 
   login: async (email, password) => {
     set({ loading: true });
@@ -56,14 +60,17 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   loadMe: async () => {
     tokenStore.load();
-    if (!tokenStore.access) return;
+    if (!tokenStore.access) {
+      set({ checked: true });
+      return;
+    }
     set({ loading: true });
     try {
       const { data } = await authApi.me();
-      set({ user: data, loading: false });
+      set({ user: data, loading: false, checked: true });
     } catch {
       tokenStore.clear();
-      set({ user: null, loading: false });
+      set({ user: null, loading: false, checked: true });
     }
   },
 
