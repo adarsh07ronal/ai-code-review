@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch.6 Octopus — AWS ECS &amp; CI/CD · Interview Field Guide</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #2f8a7a; --accent-soft: #dcefeb; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap"><a href="index.html">← Overview</a><span class="crumb">Chapter 6 of 6</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="icon">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#2f8a7a" stroke-width="8" fill="none" stroke-linecap="round">
+          <path d="M35 75 Q20 90 26 108"/><path d="M45 82 Q38 100 46 114"/><path d="M60 85 Q60 102 60 116"/>
+          <path d="M75 82 Q82 100 74 114"/><path d="M85 75 Q100 90 94 108"/>
+        </g>
+        <ellipse cx="60" cy="55" rx="38" ry="32" fill="#3aa393"/>
+        <circle cx="47" cy="52" r="9" fill="#fff"/><circle cx="73" cy="52" r="9" fill="#fff"/>
+        <circle cx="47" cy="52" r="4" fill="#2b2620"/><circle cx="73" cy="52" r="4" fill="#2b2620"/>
+      </svg>
+    </div>
+    <div class="text">
+      <div class="eyebrow">Chapter 6</div>
+      <h1>🐙 The Octopus — AWS ECS &amp; CI/CD</h1>
+      <p class="sub">Terraform · ECS Fargate + ALB · target-tracking auto-scaling · OIDC · split CI/CD/deploy</p>
+      <p class="sub" style="margin-top:6px;">Written as Terraform + GitHub Actions and validated locally — no
+      live AWS account, so nothing here has actually been deployed. Say that up front if asked.</p>
+    </div>
+  </div>
+
+  <div class="anchor-box">
+    <div class="label">Memory anchor</div>
+    <p class="mnemonic">An octopus has one brain and eight independent, coordinated arms — and can regrow one that's lost.</p>
+    <p>The <strong>arms</strong> are ECS Fargate tasks — independent workers that can grow in number when there's
+    more to grab (auto-scaling) and shrink back down when things are calm. The <strong>brain</strong> routing
+    signals to the right arm is the ALB, deciding which task handles which request. And an octopus
+    <strong>regenerating a lost arm</strong> is exactly what the deployment circuit breaker does — a failed task
+    gets replaced automatically instead of leaving a gap.</p>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>Block diagram</h2><span class="tag">Build → gate → deploy</span></div>
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#2f8a7a"/>
+          </marker>
+        </defs>
+        <rect class="node-box" x="10" y="80" width="130" height="60" rx="10"/>
+        <text class="node-label" x="75" y="106" text-anchor="middle">ci.yml</text>
+        <text class="node-sub" x="75" y="124" text-anchor="middle">lint / typecheck / build</text>
+
+        <rect class="node-box" x="180" y="80" width="130" height="60" rx="10"/>
+        <text class="node-label" x="245" y="106" text-anchor="middle">cd.yml</text>
+        <text class="node-sub" x="245" y="124" text-anchor="middle">build + push to ECR</text>
+
+        <rect x="350" y="80" width="140" height="60" rx="10" fill="none" stroke="#2f8a7a" stroke-width="2" stroke-dasharray="5 4"/>
+        <text class="node-label" x="420" y="106" text-anchor="middle">Manual gate</text>
+        <text class="node-sub" x="420" y="124" text-anchor="middle">workflow_dispatch</text>
+
+        <rect class="node-box alt" x="530" y="80" width="170" height="60" rx="10"/>
+        <text class="node-label" x="615" y="106" text-anchor="middle">deploy.yml</text>
+        <text class="node-sub" x="615" y="124" text-anchor="middle">terraform apply → ECS</text>
+
+        <path class="flow-line" d="M140 110 L180 110" marker-end="url(#a6)"/>
+        <path class="flow-line" d="M310 110 L350 110" marker-end="url(#a6)"/>
+        <path class="flow-line" d="M490 110 L530 110" marker-end="url(#a6)"/>
+        <text class="flow-label" x="420" y="60" text-anchor="middle">a human clicks "Run workflow" here — never automatic</text>
+      </svg>
+    </div>
+    <div class="diagram-caption">Building and pushing an image is automatic and low-risk. Rolling it out to
+      production is a deliberate, separate, human-triggered step.</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Easy</h2></div>
+    <div class="qa-group easy">
+      <details class="qa">
+        <summary>Why ECS Fargate instead of EKS or plain EC2?</summary>
+        <div class="body"><p>Fargate is serverless containers — no EC2 instances or Kubernetes control plane
+        to patch and manage. For a project this size, Kubernetes' extra flexibility isn't needed, and it comes
+        with real operational overhead not worth paying for two services and a straightforward scaling story.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What's the auto-scaling actually scaling on?</summary>
+        <div class="body"><p>Three target-tracking policies on the backend: CPU (60%), memory (75%), and ALB
+        requests-per-target (1000). Frontend just scales on CPU — it's a stateless server with no long-lived
+        connections.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Why does the backend get a third scaling metric the frontend doesn't?</summary>
+        <div class="body"><p>Because of the WebSocket work in Chapter 4 — a burst of concurrent long-lived
+        connections can tie up backend task capacity without spiking CPU or memory (a connection can just be
+        idle). Request-count-per-target catches that kind of load CPU/memory alone would miss.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Medium</h2></div>
+    <div class="qa-group medium">
+      <details class="qa">
+        <summary>How do secrets get into the running containers?</summary>
+        <div class="body"><p>AWS Secrets Manager, not plain environment variables in the task definition. The
+        execution role has an inline IAM policy scoped to exactly one secret ARN, and the container definition
+        references each key with <code>valueFrom</code> — ECS resolves it at container start, so values never
+        appear as plaintext in the task-definition JSON the way a plain <code>environment</code> block would.</p></div>
+      </details>
+      <details class="qa">
+        <summary>A subtle one — does setting <code>NEXT_PUBLIC_API_URL</code> as an ECS runtime env var actually work?</summary>
+        <div class="body"><p>No. Next.js inlines any <code>NEXT_PUBLIC_*</code> variable into the client bundle
+        <em>at build time</em> — by the time the container is running, the static output is already compiled.
+        The real fix is in the Dockerfile: <code>ARG NEXT_PUBLIC_API_URL</code> in the builder stage, set before
+        <code>npm run build</code>, passed in by the CD workflow as <code>--build-arg</code>. Caught this before
+        it became a "works in Terraform plan, breaks in prod" surprise.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Why is deploy.yml manual instead of running automatically on merge, when cd.yml isn't?</summary>
+        <div class="body"><p>Building and pushing an image to ECR is low-risk and easily reversible — just an
+        artifact sitting in a registry. Actually rolling that image out to ECS is a different risk category —
+        kept as a manual <code>workflow_dispatch</code> trigger so a production infra change is always a
+        decision, not an automatic side effect of a merge. This came directly out of a review flagging an
+        earlier draft that ran <code>terraform apply -auto-approve</code> on every push as contradicting the
+        "no live deploy" scope.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Why OIDC instead of long-lived AWS access keys in GitHub Actions?</summary>
+        <div class="body"><p>No access key/secret stored in GitHub Secrets at all — GitHub's OIDC token is
+        exchanged for short-lived AWS credentials scoped to whatever IAM role trusts that specific
+        repo/workflow. A long-lived key sitting in GitHub Secrets is a standing credential that works forever
+        if leaked; OIDC credentials expire in under an hour and are scoped per workflow run.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Challenge</h2><span class="tag">Situation → Solution → Trade-off → Benefit</span></div>
+    <div class="qa-group challenge">
+      <details class="qa">
+        <summary>No AWS account was available to actually validate the infrastructure</summary>
+        <div class="body challenge-body">
+          <dl>
+            <dt>Situation</dt>
+            <dd>Terraform code that's never been run is worth very little — HCL that "looks right" can still
+            fail on a real apply (circular dependencies, wrong argument names, provider quirks).</dd>
+            <dt>Solution</dt>
+            <dd>Ran <code>terraform init -backend=false</code>, then <code>validate</code> and
+            <code>plan</code> with dummy variable values. Plan got as far as actually trying to talk to AWS and
+            failed only on missing credentials — meaning every resource reference and the entire dependency
+            graph resolved correctly; the only thing missing was real credentials.</dd>
+            <dt>Trade-off</dt>
+            <dd>Proves the configuration is internally consistent, not that it will provision successfully
+            end-to-end — IAM permission boundaries, service quotas, or AZ availability can only surface on a
+            real apply.</dd>
+            <dt>Benefit</dt>
+            <dd>Caught real mistakes before they'd have surfaced as a broken apply later — an invalid data
+            source that doesn't actually exist in the AWS provider, and several formatting issues. Cheap to
+            catch locally, much more annoying to debug against a live account mid-deploy.</dd>
+          </dl>
+        </div>
+      </details>
+      <details class="qa">
+        <summary>Three feature branches built off master independently instead of stacked</summary>
+        <div class="body challenge-body">
+          <dl>
+            <dt>Situation</dt>
+            <dd>WebSockets, billing/RBAC, and infra were all built as separate PRs, each branching from the
+            same master baseline rather than from each other.</dd>
+            <dt>Solution</dt>
+            <dd>Keep them independent so none of the three PRs depends on another merging first — they can be
+            reviewed and merged in any order.</dd>
+            <dt>Trade-off</dt>
+            <dd>Files touched by more than one branch (the dashboard page, touched by two of the three) will
+            conflict when merging the second one — resolved by hand, not automatically.</dd>
+            <dt>Benefit</dt>
+            <dd>No branch is blocked waiting on another, and a reviewer can approve and ship just the
+            WebSocket work without also signing off on the billing changes in the same review.</dd>
+          </dl>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Cross-Cutting — whole-system questions</h2></div>
+    <div class="qa-group medium">
+      <details class="qa">
+        <summary>Walk me through end-to-end what happens when someone opens a pull request.</summary>
+        <div class="body"><p>GitHub sends a webhook → HMAC verified → PR row upserted (idempotent) → background
+        task fired, handler returns 200 immediately → worker marks REVIEWING and publishes that over the
+        WebSocket → fetches diff → calls GPT-4o for structured findings → persists CodeReview → posts a
+        Markdown comment back to GitHub → marks COMPLETED and publishes the final event → dashboard updates
+        live, no refresh needed.</p></div>
+      </details>
+      <details class="qa">
+        <summary>If this had to handle 10x the traffic tomorrow, what breaks first?</summary>
+        <div class="body"><p>Two candidates: OpenAI rate limits — there's no queueing or concurrency cap, a
+        burst of PRs could all hit the API at once. And the single NAT Gateway in the VPC — a documented cost
+        trade-off, not an accident. I'd add a proper task queue before touching infra scaling, since that's the
+        actual bottleneck, not compute capacity.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What's the most interesting engineering decision in this project?</summary>
+        <div class="body"><p>The Redis pub/sub design for WebSockets — the one piece designed <em>for</em> a
+        requirement (multi-replica auto-scaling) that didn't exist yet when it was built, and works identically
+        at any replica count. Close second: keeping the deploy workflow manual instead of auto-applying — a
+        guardrail that came directly out of a review catching scope creep, not something planned from the start.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-5-multitenant-billing.html">← Chapter 5 — Ant Colony: Multi-Tenant &amp; Billing</a>
+    <a href="index.html">Back to Overview →</a>
+  </div>
+
+</div>
+</body>
+</html>

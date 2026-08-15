@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch.5 Ant Colony — Multi-Tenant, RBAC &amp; Billing · Interview Field Guide</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #b5502e; --accent-soft: #f5e2d9; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap"><a href="index.html">← Overview</a><span class="crumb">Chapter 5 of 6</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="icon">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <g stroke="#b5502e" stroke-width="3.5" stroke-linecap="round">
+          <path d="M45 60 L20 50 M45 68 L16 68 M45 76 L20 86"/>
+          <path d="M75 60 L100 50 M75 68 L104 68 M75 76 L100 86"/>
+        </g>
+        <circle cx="82" cy="72" r="24" fill="#b5502e"/>
+        <circle cx="55" cy="68" r="15" fill="#c96a45"/>
+        <circle cx="34" cy="60" r="14" fill="#b5502e"/>
+        <circle cx="30" cy="57" r="2" fill="#fff"/><circle cx="38" cy="57" r="2" fill="#fff"/>
+        <path d="M28 50 Q18 38 10 36 M40 50 Q42 36 50 30" stroke="#b5502e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="text">
+      <div class="eyebrow">Chapter 5</div>
+      <h1>🐜 The Ant Colony — Multi-Tenant, RBAC &amp; Billing</h1>
+      <p class="sub">Organization / OrganizationMember / OrgRole · dependency-based RBAC · Stripe Checkout &amp; webhooks</p>
+      <p class="sub" style="margin-top:6px;">The schema existed since Chapter 1 with zero endpoints and zero
+      enforcement — this phase wired it up.</p>
+    </div>
+  </div>
+
+  <div class="anchor-box">
+    <div class="label">Memory anchor</div>
+    <p class="mnemonic">An ant colony has exactly one queen, a caste of soldiers, and workers who follow orders — never the reverse.</p>
+    <p>The <strong>queen</strong> is the org <code>OWNER</code> — there's always exactly one, and nothing in the
+    API lets you create a second one or demote her. <strong>Soldier ants</strong> are <code>ADMIN</code>s — they
+    can guard the colony (invite/remove members) but don't run it. <strong>Worker ants</strong> are plain
+    <code>MEMBER</code>s — they can see the colony's stores but can't reorganize it. And the colony itself,
+    gathering food to survive, is the org's Stripe subscription — <strong>billing keeps the whole colony fed</strong>.</p>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>Block diagram</h2><span class="tag">Two lanes: RBAC + Billing</span></div>
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#b5502e"/>
+          </marker>
+        </defs>
+        <text class="flow-label" x="10" y="20">RBAC lane</text>
+        <rect class="node-box" x="10" y="30" width="140" height="56" rx="10"/>
+        <text class="node-label" x="80" y="54" text-anchor="middle">User request</text>
+        <text class="node-sub" x="80" y="72" text-anchor="middle">POST /organizations/{id}/members</text>
+
+        <rect class="node-box" x="200" y="30" width="170" height="56" rx="10"/>
+        <text class="node-label" x="285" y="54" text-anchor="middle">get_org_membership</text>
+        <text class="node-sub" x="285" y="72" text-anchor="middle">403 if not a member</text>
+
+        <rect class="node-box" x="420" y="30" width="170" height="56" rx="10"/>
+        <text class="node-label" x="505" y="54" text-anchor="middle">require_org_role</text>
+        <text class="node-sub" x="505" y="72" text-anchor="middle">403 if wrong role</text>
+
+        <rect class="node-box alt" x="640" y="30" width="70" height="56" rx="10"/>
+        <text class="node-label" x="675" y="54" text-anchor="middle">Endpoint</text>
+        <text class="node-sub" x="675" y="72" text-anchor="middle">runs</text>
+
+        <path class="flow-line" d="M150 58 L200 58" marker-end="url(#a5)"/>
+        <path class="flow-line" d="M370 58 L420 58" marker-end="url(#a5)"/>
+        <path class="flow-line" d="M590 58 L640 58" marker-end="url(#a5)"/>
+
+        <text class="flow-label" x="10" y="150">Billing lane</text>
+        <rect class="node-box" x="10" y="160" width="140" height="56" rx="10"/>
+        <text class="node-label" x="80" y="184" text-anchor="middle">Browser</text>
+        <text class="node-sub" x="80" y="202" text-anchor="middle">clicks Upgrade</text>
+
+        <rect class="node-box alt" x="200" y="160" width="160" height="56" rx="10"/>
+        <text class="node-label" x="280" y="184" text-anchor="middle">Stripe Checkout</text>
+        <text class="node-sub" x="280" y="202" text-anchor="middle">metadata.tier = "pro"</text>
+
+        <rect class="node-box" x="410" y="160" width="180" height="56" rx="10"/>
+        <text class="node-label" x="500" y="184" text-anchor="middle">Webhook</text>
+        <text class="node-sub" x="500" y="202" text-anchor="middle">checkout.session.completed</text>
+
+        <rect class="node-box alt" x="640" y="160" width="70" height="56" rx="10"/>
+        <text class="node-label" x="675" y="184" text-anchor="middle">Postgres</text>
+        <text class="node-sub" x="675" y="202" text-anchor="middle">tier</text>
+
+        <path class="flow-line" d="M150 188 L200 188" marker-end="url(#a5)"/>
+        <path class="flow-line" d="M360 188 L410 188" marker-end="url(#a5)"/>
+        <path class="flow-line" d="M590 188 L640 188" marker-end="url(#a5)"/>
+
+        <rect x="10" y="250" width="700" height="40" rx="8" fill="none" stroke="#b5502e" stroke-dasharray="4 4"/>
+        <text class="flow-label" x="360" y="275" text-anchor="middle">Bug found here: hard refresh on any dashboard page bounced a logged-in user to /auth/login — see Challenge below</text>
+      </svg>
+    </div>
+    <div class="diagram-caption">RBAC and billing don't touch each other directly — RBAC gates who can act
+      inside an org, billing decides what tier a user is on.</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Easy</h2></div>
+    <div class="qa-group easy">
+      <details class="qa">
+        <summary>What are the three roles and what can each do?</summary>
+        <div class="body"><p><code>OWNER</code>, <code>ADMIN</code>, <code>MEMBER</code>. Owner and admin can
+        invite/remove members and change roles; members can only view. An owner's role can never be changed or
+        removed via the API — every mutating endpoint explicitly blocks that, so an org can't accidentally end
+        up without an owner.</p></div>
+      </details>
+      <details class="qa">
+        <summary>How does Stripe Checkout know which plan the user picked?</summary>
+        <div class="body"><p>The tier is attached as <strong class="k">metadata</strong> on the Checkout Session
+        <em>and</em> on <strong class="k">subscription_data.metadata</strong>. Stripe copies that onto the
+        resulting Subscription, so both the initial webhook and any later plan-change webhook carry the tier
+        directly — no separate lookup needed.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What's the Stripe customer portal, and why not build a custom "cancel subscription" page?</summary>
+        <div class="body"><p>Stripe's hosted billing portal handles plan changes, cancellation, and payment
+        method updates without the app needing to build or PCI-scope any of that UI itself.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Medium</h2></div>
+    <div class="qa-group medium">
+      <details class="qa">
+        <summary>Why carry the tier in metadata instead of mapping Stripe price IDs back to tiers?</summary>
+        <div class="body"><p>An inverse map (<code>price_xyz → "pro"</code>) has to be kept in sync by hand
+        every time a price changes in the Stripe dashboard, and silently goes stale if forgotten. Metadata is
+        set once, at Checkout creation, from the same tier the endpoint already validated — no second source of
+        truth that can drift from the first.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What actually stops a plain member from inviting someone?</summary>
+        <div class="body"><p><code>require_org_role</code> is a dependency factory — it depends on
+        <code>get_org_membership</code> (which 403s outright if the caller isn't a member at all), then checks
+        the role against an allow-list. FastAPI resolves this <em>before</em> the endpoint body runs — a member
+        never reaches the invite logic. Verified directly: registered a fresh user as a plain member, confirmed
+        their own invite attempt came back 403.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What stops someone from inviting a new member directly as owner?</summary>
+        <div class="body"><p>An explicit check in the invite endpoint rejects <code>role == OWNER</code>.
+        Combined with the role-update endpoint also refusing to touch an existing owner, there's exactly one
+        way to become an owner — creating the org — and no way to make someone else one afterward through this
+        API. Deliberate simplification, not an oversight.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Challenge — the best "tell me about a bug" story</h2><span class="tag">Situation → Solution → Trade-off → Benefit</span></div>
+    <div class="qa-group challenge">
+      <details class="qa" open>
+        <summary>A pre-existing auth-guard race condition, found while verifying an unrelated feature</summary>
+        <div class="body challenge-body">
+          <dl>
+            <dt>Situation</dt>
+            <dd>While manually verifying the new billing/team pages, a full browser refresh on any dashboard
+            page intermittently bounced a logged-in user straight back to login — even with a perfectly valid
+            token in localStorage.</dd>
+            <dt>Root cause</dt>
+            <dd>The auth store's <code>loading</code> flag started as <code>false</code>. The redirect effect —
+            <code>if (!loading &amp;&amp; !user) router.replace("/auth/login")</code> — ran on mount using that
+            initial state, <em>before</em> the async user-fetch had a chance to resolve and flip
+            <code>loading</code> to true. A classic React effect-ordering race: two effects fire in the same
+            commit, one kicks off an async check, the other reads stale state from before that check started.</dd>
+            <dt>Solution</dt>
+            <dd>Added an explicit <code>checked: boolean</code> to the auth store, set true only once the
+            user-fetch has actually completed — success or failure. The guard changed from
+            <code>!loading &amp;&amp; !user</code> to <code>checked &amp;&amp; !user</code> — it now waits for
+            a definitive answer instead of racing an in-flight request.</dd>
+            <dt>Trade-off</dt>
+            <dd>One more piece of state to keep in sync, and every page using the guard pattern had to be
+            updated in lockstep — a missed page would still have the bug.</dd>
+            <dt>Benefit</dt>
+            <dd>This pattern was copied into two brand-new pages from the original dashboard page — fixing it
+            once at the store level, instead of patching each page's local effect logic, meant all three pages
+            (and any future page reusing the guard) got the fix for free.</dd>
+          </dl>
+          <p style="margin-top:14px;"><strong class="k">Why this is worth bringing up:</strong> it wasn't
+          something the task asked for — it surfaced during manual verification of an unrelated feature, and
+          shipping without noticing it would have meant landing a subtly broken login experience.</p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-4-websockets.html">← Chapter 4 — Bee: Real-Time WebSockets</a>
+    <a href="chapter-6-aws-cicd.html">Chapter 6 — Octopus: AWS ECS &amp; CI/CD →</a>
+  </div>
+
+</div>
+</body>
+</html>

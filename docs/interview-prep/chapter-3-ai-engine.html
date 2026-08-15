@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch.3 Owl — AI Review Engine · Interview Field Guide</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #a5763b; --accent-soft: #f2e9d8; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap"><a href="index.html">← Overview</a><span class="crumb">Chapter 3 of 6</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="icon">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <path d="M40 28 L34 10 L52 24 Z" fill="#a5763b"/><path d="M80 28 L86 10 L68 24 Z" fill="#a5763b"/>
+        <ellipse cx="60" cy="72" rx="34" ry="38" fill="#a5763b"/>
+        <path d="M30 60 Q22 85 34 100 Q40 78 44 62 Z" fill="#8a5f2b"/>
+        <path d="M90 60 Q98 85 86 100 Q80 78 76 62 Z" fill="#8a5f2b"/>
+        <circle cx="60" cy="58" r="30" fill="#f0e2c8"/>
+        <circle cx="48" cy="56" r="12" fill="#fff"/><circle cx="72" cy="56" r="12" fill="#fff"/>
+        <circle cx="48" cy="56" r="6" fill="#2b2620"/><circle cx="72" cy="56" r="6" fill="#2b2620"/>
+        <path d="M60 64 L54 74 L66 74 Z" fill="#e0a83b"/>
+        <path d="M50 108 l-4 8 M70 108 l4 8" stroke="#e0a83b" stroke-width="3" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="text">
+      <div class="eyebrow">Chapter 3</div>
+      <h1>🦉 The Owl — AI Review Engine</h1>
+      <p class="sub">GPT-4o · structured JSON findings · GitHub PR comment formatting</p>
+    </div>
+  </div>
+
+  <div class="anchor-box">
+    <div class="label">Memory anchor</div>
+    <p class="mnemonic">An owl doesn't just stare at the forest — it sees in a structured way: this branch, that shadow, this movement.</p>
+    <p>The owl's <strong>huge, precise eyes</strong> are the model reading the diff carefully. But an owl doesn't
+    report back in vague hoots — it gives you a <strong>structured verdict</strong>: severity, file, line,
+    suggestion. That's exactly why the AI is asked for structured JSON instead of a free-text paragraph — one
+    clear judgment, not a mood.</p>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>Block diagram</h2><span class="tag">Review pipeline</span></div>
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#a5763b"/>
+          </marker>
+        </defs>
+        <rect class="node-box" x="10" y="30" width="140" height="56" rx="10"/>
+        <text class="node-label" x="80" y="54" text-anchor="middle">PullRequest row</text>
+        <text class="node-sub" x="80" y="72" text-anchor="middle">status: PENDING</text>
+
+        <rect class="node-box" x="190" y="30" width="140" height="56" rx="10"/>
+        <text class="node-label" x="260" y="54" text-anchor="middle">Fetch diff</text>
+        <text class="node-sub" x="260" y="72" text-anchor="middle">GitHub API</text>
+
+        <rect class="node-box alt" x="370" y="30" width="140" height="56" rx="10"/>
+        <text class="node-label" x="440" y="54" text-anchor="middle">GPT-4o</text>
+        <text class="node-sub" x="440" y="72" text-anchor="middle">ai_service.py</text>
+
+        <rect class="node-box" x="550" y="30" width="150" height="56" rx="10"/>
+        <text class="node-label" x="625" y="54" text-anchor="middle">Structured JSON</text>
+        <text class="node-sub" x="625" y="72" text-anchor="middle">findings + severities</text>
+
+        <rect class="node-box alt" x="470" y="160" width="150" height="56" rx="10"/>
+        <text class="node-label" x="545" y="184" text-anchor="middle">Postgres</text>
+        <text class="node-sub" x="545" y="202" text-anchor="middle">CodeReview row</text>
+
+        <rect class="node-box alt" x="640" y="160" width="140" height="56" rx="10"/>
+        <text class="node-label" x="710" y="184" text-anchor="middle">GitHub</text>
+        <text class="node-sub" x="710" y="202" text-anchor="middle">Markdown PR comment</text>
+
+        <path class="flow-line" d="M150 58 L190 58" marker-end="url(#a3)"/>
+        <path class="flow-line" d="M330 58 L370 58" marker-end="url(#a3)"/>
+        <path class="flow-line" d="M510 58 L550 58" marker-end="url(#a3)"/>
+        <path class="flow-line" d="M600 86 L545 160" marker-end="url(#a3)"/>
+        <path class="flow-line" d="M650 86 L710 160" marker-end="url(#a3)"/>
+      </svg>
+    </div>
+    <div class="diagram-caption">One AI call produces one structured payload — it branches into a persisted DB
+      row and a formatted GitHub comment, instead of two separate model calls or fragile re-parsing.</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Easy</h2></div>
+    <div class="qa-group easy">
+      <details class="qa">
+        <summary>Which model does this use, and why GPT-4o?</summary>
+        <div class="body"><p>Good code-reasoning quality with lower latency/cost than the largest reasoning
+        models — matters here because review latency directly affects developer experience. Nobody wants to
+        wait three minutes for a PR comment.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What does the AI actually return — free text or something structured?</summary>
+        <div class="body"><p>Structured JSON: summary, findings (file/line/severity/message/suggestion),
+        security issues, architecture suggestions, overall quality. The worker counts severities out of that
+        structure rather than parsing them out of prose.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Where does the review end up?</summary>
+        <div class="body"><p>Two places: persisted as a CodeReview row in Postgres (so the dashboard can show
+        history), and — if the repo's config allows it — formatted as Markdown and posted back as an actual
+        GitHub PR review comment.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Medium</h2></div>
+    <div class="qa-group medium">
+      <details class="qa">
+        <summary>Why structured JSON instead of just asking the model to write a nice comment directly?</summary>
+        <div class="body"><p>Two different consumers need two different shapes from the same review: the
+        dashboard wants queryable severity counts, GitHub wants a nicely formatted comment. Structured JSON lets
+        the comment be rendered from the same data that populates the DB counts — one AI call, two
+        presentations, instead of calling the model twice or fragile-parsing a comment string back into
+        structured data.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What happens if posting the GitHub comment fails — does the whole review fail?</summary>
+        <div class="body"><p>No — it's wrapped in its own try/except, separate from the outer pipeline
+        try/except. A GitHub API hiccup logs a warning but doesn't roll back the CodeReview row already
+        persisted, and doesn't flip the PR to FAILED. The review itself succeeded; only "tell GitHub about it"
+        didn't, and that's a meaningfully different failure.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Any concerns with how severities are counted from the findings list?</summary>
+        <div class="body"><p>It's a few passes over a combined list for three severity buckets — fine at the
+        size these lists actually are (a PR review producing thousands of findings would be useless to a human
+        anyway). Worth mentioning if asked to nitpick, not worth "fixing" pre-emptively given how small the
+        list realistically is.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Challenge</h2><span class="tag">Situation → Solution → Trade-off → Benefit</span></div>
+    <div class="qa-group challenge">
+      <details class="qa">
+        <summary>LLM output isn't guaranteed to match your schema</summary>
+        <div class="body challenge-body">
+          <dl>
+            <dt>Situation</dt>
+            <dd>Even when asked for JSON, a model can occasionally return malformed output, omit a field, or
+            use an unexpected severity string.</dd>
+            <dt>Solution</dt>
+            <dd>The code defensively uses <strong class="k">.get()</strong> with defaults everywhere it reads
+            from the AI response, instead of direct dict indexing — a missing field degrades gracefully (empty
+            list, default severity) rather than throwing mid-pipeline.</dd>
+            <dt>Trade-off</dt>
+            <dd>You lose an immediate, loud failure if the model's output format drifts — a KeyError would tell
+            you fast; silent defaulting could mask a real prompt-quality regression until someone notices
+            reviews look thinner than expected.</dd>
+            <dt>Benefit</dt>
+            <dd>One malformed AI response doesn't take down the whole pipeline or leave a PR stuck in
+            REVIEWING — worse review quality is a much better failure mode than a 500.</dd>
+          </dl>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-2-oauth-webhooks.html">← Chapter 2 — Pigeon: OAuth &amp; Webhooks</a>
+    <a href="chapter-4-websockets.html">Chapter 4 — Bee: Real-Time WebSockets →</a>
+  </div>
+
+</div>
+</body>
+</html>

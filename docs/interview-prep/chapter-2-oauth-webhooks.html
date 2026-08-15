@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch.2 Pigeon — OAuth &amp; Webhooks · Interview Field Guide</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #3b6ea5; --accent-soft: #e5eef7; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap"><a href="index.html">← Overview</a><span class="crumb">Chapter 2 of 6</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="icon">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <path d="M52 70 Q30 55 20 75 Q40 78 55 90 Z" fill="#9ec3e0"/>
+        <ellipse cx="62" cy="72" rx="30" ry="24" fill="#3b6ea5"/>
+        <circle cx="86" cy="46" r="16" fill="#3b6ea5"/><circle cx="92" cy="42" r="2.4" fill="#fff"/>
+        <path d="M100 46 L112 50 L100 54 Z" fill="#e0a83b"/>
+        <rect x="103" y="55" width="14" height="10" rx="1" fill="#fff" stroke="#3b6ea5" stroke-width="1.5" transform="rotate(20 111 61)"/>
+        <path d="M55 94 l-4 8 M65 94 l4 8" stroke="#e0a83b" stroke-width="3" stroke-linecap="round"/>
+        <path d="M34 78 L14 88 L34 90 Z" fill="#3b6ea5"/>
+      </svg>
+    </div>
+    <div class="text">
+      <div class="eyebrow">Chapter 2</div>
+      <h1>🐦 The Pigeon — OAuth &amp; Webhooks</h1>
+      <p class="sub">GitHub OAuth Authorization Code flow · HMAC-signed webhooks · fire-and-forget queueing</p>
+    </div>
+  </div>
+
+  <div class="anchor-box">
+    <div class="label">Memory anchor</div>
+    <p class="mnemonic">A homing pigeon carries a sealed message, and only a sealed message with the right seal is trusted.</p>
+    <p>The <strong>wax seal</strong> on the message is the HMAC-SHA256 signature GitHub attaches to every webhook —
+    if the seal doesn't match, the message is rejected without even being read. The pigeon
+    <strong>flying out and back</strong> is the OAuth redirect dance: the browser is sent away to GitHub and comes
+    back carrying a code. And the pigeon <strong>dropping the message and immediately flying off again</strong> is
+    the webhook handler returning 200 right away instead of waiting around for the slow part to finish.</p>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>Block diagram</h2><span class="tag">Webhook intake</span></div>
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#3b6ea5"/>
+          </marker>
+        </defs>
+        <rect class="node-box" x="10" y="80" width="140" height="60" rx="10"/>
+        <text class="node-label" x="80" y="106" text-anchor="middle">GitHub</text>
+        <text class="node-sub" x="80" y="124" text-anchor="middle">pull_request event</text>
+
+        <rect class="node-box" x="195" y="80" width="170" height="60" rx="10"/>
+        <text class="node-label" x="280" y="106" text-anchor="middle">Verify HMAC</text>
+        <text class="node-sub" x="280" y="124" text-anchor="middle">compare_digest()</text>
+
+        <rect class="node-box alt" x="410" y="80" width="150" height="60" rx="10"/>
+        <text class="node-label" x="485" y="106" text-anchor="middle">Postgres</text>
+        <text class="node-sub" x="485" y="124" text-anchor="middle">upsert PullRequest</text>
+
+        <rect class="node-box alt" x="605" y="80" width="110" height="60" rx="10"/>
+        <text class="node-label" x="660" y="102" text-anchor="middle">create_task</text>
+        <text class="node-sub" x="660" y="120" text-anchor="middle">→ Ch.3</text>
+
+        <path class="flow-line" d="M150 110 L195 110" marker-end="url(#a2)"/>
+        <path class="flow-line" d="M365 110 L410 110" marker-end="url(#a2)"/>
+        <path class="flow-line" d="M560 110 L605 110" marker-end="url(#a2)"/>
+        <path class="flow-line" d="M280 140 Q280 170 150 170" stroke-dasharray="5 4" marker-end="url(#a2)"/>
+        <text class="flow-label" x="215" y="185" text-anchor="middle">200 OK — instantly, before review runs</text>
+      </svg>
+    </div>
+    <div class="diagram-caption">The response to GitHub is decoupled from the actual AI review — the pipeline
+      continues in the background after the handler already replied.</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Easy</h2></div>
+    <div class="qa-group easy">
+      <details class="qa">
+        <summary>What OAuth flow does this use?</summary>
+        <div class="body"><p>Standard Authorization Code flow: redirect the user to GitHub's
+        <strong class="k">/login/oauth/authorize</strong>, GitHub redirects back with a code, the backend exchanges
+        that code server-side for an access token. The token never touches the browser directly during that
+        exchange.</p></div>
+      </details>
+      <details class="qa">
+        <summary>How does the backend know a webhook payload really came from GitHub?</summary>
+        <div class="body"><p>HMAC-SHA256 signature verification. GitHub signs the raw request body with a shared
+        secret and sends it as <strong class="k">X-Hub-Signature-256</strong>. The backend recomputes the HMAC over
+        the same bytes and compares with <strong class="k">hmac.compare_digest</strong> — constant-time, not
+        <strong class="k">==</strong>, specifically to avoid timing attacks.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Why does the webhook handler return 200 before the review finishes?</summary>
+        <div class="body"><p>GitHub expects a fast response and will retry — and eventually disable — a webhook
+        that times out. <strong class="k">queue_review()</strong> just fires
+        <strong class="k">asyncio.create_task</strong> and returns; the actual review runs independently.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Medium</h2></div>
+    <div class="qa-group medium">
+      <details class="qa">
+        <summary>What security property does <code>compare_digest</code> actually buy you over <code>==</code>?</summary>
+        <div class="body"><p>Python's <strong class="k">==</strong> on strings short-circuits at the first
+        mismatched byte, so comparison time leaks how many leading bytes matched. An attacker measuring response
+        timing precisely enough could recover the correct signature one byte at a time. <strong class="k">compare_digest</strong>
+        always takes the same time regardless of where the mismatch is, so there's no timing signal to exploit.</p></div>
+      </details>
+      <details class="qa">
+        <summary>The handler fires an unawaited <code>asyncio.create_task</code>. What if it raises?</summary>
+        <div class="body"><p>Left unhandled it'd be swallowed as an "exception never retrieved" warning and the
+        PR would silently stay <strong class="k">PENDING</strong> forever. That's why the worker wraps the whole
+        pipeline in try/except and self-reports failure into the database (and, since Chapter 4, over the
+        WebSocket) — fire-and-forget from the webhook handler's side, but not silent about failure.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Why store the GitHub access token on the User row?</summary>
+        <div class="body"><p>It's what's used to call the GitHub API on the user's behalf later — fetch diffs,
+        post review comments. The trade-off is a long-lived token sitting in the primary database rather than a
+        secrets manager; for real production you'd want it encrypted at rest or moved out, the same way Chapter 6's
+        Terraform does for the app's <em>own</em> secrets but not (yet) for user tokens.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Challenge</h2><span class="tag">Situation → Solution → Trade-off → Benefit</span></div>
+    <div class="qa-group challenge">
+      <details class="qa">
+        <summary>Webhook delivery is at-least-once, not exactly-once</summary>
+        <div class="body challenge-body">
+          <dl>
+            <dt>Situation</dt>
+            <dd>GitHub retries webhooks that don't get acknowledged fast enough or that fail. A naive handler
+            would create a duplicate PR row — or trigger a duplicate, token-burning AI review — every time the
+            same event got redelivered.</dd>
+            <dt>Solution</dt>
+            <dd>The handler looks up the existing PullRequest by <strong class="k">github_pr_id</strong> (which
+            has a unique constraint) before deciding whether to insert or update.</dd>
+            <dt>Trade-off</dt>
+            <dd>Every webhook event does a DB read before any write, adding a small amount of latency to a path
+            that's already trying to be fast for GitHub's sake.</dd>
+            <dt>Benefit</dt>
+            <dd>Idempotency — replaying the same event any number of times converges to the same DB state
+            instead of piling up duplicate reviews.</dd>
+          </dl>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <a href="chapter-1-auth-db.html">← Chapter 1 — Turtle: Auth &amp; DB</a>
+    <a href="chapter-3-ai-engine.html">Chapter 3 — Owl: AI Review Engine →</a>
+  </div>
+
+</div>
+</body>
+</html>

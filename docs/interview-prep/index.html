@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Field Guide — AI Code Review Platform</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #2f6b4f; --accent-soft: #e4efe8; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap"><strong>🐾 Interview Field Guide</strong><span class="crumb">AI Code Review Platform</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero" style="padding-top:40px;">
+    <div class="text">
+      <div class="eyebrow">Overview</div>
+      <h1>Six animals, six phases</h1>
+      <p class="sub">One mnemonic per chapter, an analogy to hang it on, a block diagram to point at on a whiteboard,
+      and easy/medium Q&amp;A with real challenges underneath. Click any animal to jump into its chapter.</p>
+    </div>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>The Journey</h2></div>
+    <p class="section-note">Walk the chain in order and the whole system tells a story: a turtle lets you in,
+    a pigeon carries the message, an owl reviews it wisely, bees broadcast the verdict live, ants organize
+    the team who pays for it, and an octopus runs the whole thing in the cloud.</p>
+
+    <div class="journey">
+      <a class="journey-stop" href="chapter-1-auth-db.html">
+        <div class="icon-sm">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="30" cy="90" rx="10" ry="7" fill="#2f6b4f"/><ellipse cx="90" cy="90" rx="10" ry="7" fill="#2f6b4f"/>
+            <ellipse cx="24" cy="55" rx="9" ry="7" fill="#2f6b4f"/><ellipse cx="96" cy="55" rx="9" ry="7" fill="#2f6b4f"/>
+            <path d="M60 100 q6 10 14 8" stroke="#2f6b4f" stroke-width="5" fill="none" stroke-linecap="round"/>
+            <circle cx="60" cy="30" r="14" fill="#2f6b4f"/><circle cx="55" cy="27" r="2.2" fill="#fff"/><circle cx="65" cy="27" r="2.2" fill="#fff"/>
+            <ellipse cx="60" cy="68" rx="42" ry="34" fill="#e4efe8" stroke="#2f6b4f" stroke-width="4"/>
+            <path d="M60 40 L38 55 L38 82 L60 96 L82 82 L82 55 Z" fill="none" stroke="#2f6b4f" stroke-width="2.5"/>
+            <path d="M60 40 L60 96 M38 55 L82 82 M82 55 L38 82" stroke="#2f6b4f" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="num">CH 1</div><div class="name">Turtle</div><div class="hook">Auth &amp; database</div>
+      </a>
+      <span class="journey-arrow">→</span>
+
+      <a class="journey-stop" href="chapter-2-oauth-webhooks.html">
+        <div class="icon-sm">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M52 70 Q30 55 20 75 Q40 78 55 90 Z" fill="#9ec3e0"/>
+            <ellipse cx="62" cy="72" rx="30" ry="24" fill="#3b6ea5"/>
+            <circle cx="86" cy="46" r="16" fill="#3b6ea5"/><circle cx="92" cy="42" r="2.4" fill="#fff"/>
+            <path d="M100 46 L112 50 L100 54 Z" fill="#e0a83b"/>
+            <rect x="103" y="55" width="14" height="10" rx="1" fill="#fff" stroke="#3b6ea5" stroke-width="1.5" transform="rotate(20 111 61)"/>
+            <path d="M55 94 l-4 8 M65 94 l4 8" stroke="#e0a83b" stroke-width="3" stroke-linecap="round"/>
+            <path d="M34 78 L14 88 L34 90 Z" fill="#3b6ea5"/>
+          </svg>
+        </div>
+        <div class="num">CH 2</div><div class="name">Pigeon</div><div class="hook">OAuth &amp; webhooks</div>
+      </a>
+      <span class="journey-arrow">→</span>
+
+      <a class="journey-stop" href="chapter-3-ai-engine.html">
+        <div class="icon-sm">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <path d="M40 28 L34 10 L52 24 Z" fill="#a5763b"/><path d="M80 28 L86 10 L68 24 Z" fill="#a5763b"/>
+            <ellipse cx="60" cy="72" rx="34" ry="38" fill="#a5763b"/>
+            <path d="M30 60 Q22 85 34 100 Q40 78 44 62 Z" fill="#8a5f2b"/>
+            <path d="M90 60 Q98 85 86 100 Q80 78 76 62 Z" fill="#8a5f2b"/>
+            <circle cx="60" cy="58" r="30" fill="#f0e2c8"/>
+            <circle cx="48" cy="56" r="12" fill="#fff"/><circle cx="72" cy="56" r="12" fill="#fff"/>
+            <circle cx="48" cy="56" r="6" fill="#2b2620"/><circle cx="72" cy="56" r="6" fill="#2b2620"/>
+            <path d="M60 64 L54 74 L66 74 Z" fill="#e0a83b"/>
+          </svg>
+        </div>
+        <div class="num">CH 3</div><div class="name">Owl</div><div class="hook">AI review engine</div>
+      </a>
+      <span class="journey-arrow">→</span>
+
+      <a class="journey-stop" href="chapter-4-websockets.html">
+        <div class="icon-sm">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="45" cy="45" rx="16" ry="11" fill="#dceaf5" stroke="#c48a1f" stroke-width="1.5" transform="rotate(-20 45 45)"/>
+            <ellipse cx="75" cy="45" rx="16" ry="11" fill="#dceaf5" stroke="#c48a1f" stroke-width="1.5" transform="rotate(20 75 45)"/>
+            <ellipse cx="60" cy="70" rx="26" ry="32" fill="#f3c94d"/>
+            <path d="M36 58 Q60 66 84 58" stroke="#2b2620" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <path d="M35 74 Q60 82 85 74" stroke="#2b2620" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <path d="M40 90 Q60 96 80 90" stroke="#2b2620" stroke-width="7" fill="none" stroke-linecap="round"/>
+            <circle cx="60" cy="34" r="14" fill="#2b2620"/><circle cx="55" cy="32" r="2.2" fill="#fff"/><circle cx="65" cy="32" r="2.2" fill="#fff"/>
+            <path d="M53 22 Q48 10 40 8 M67 22 Q72 10 80 8" stroke="#2b2620" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+            <path d="M60 102 L60 112" stroke="#2b2620" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="num">CH 4</div><div class="name">Bee</div><div class="hook">Real-time WebSockets</div>
+      </a>
+      <span class="journey-arrow">→</span>
+
+      <a class="journey-stop" href="chapter-5-multitenant-billing.html">
+        <div class="icon-sm">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#b5502e" stroke-width="3.5" stroke-linecap="round">
+              <path d="M45 60 L20 50 M45 68 L16 68 M45 76 L20 86"/>
+              <path d="M75 60 L100 50 M75 68 L104 68 M75 76 L100 86"/>
+            </g>
+            <circle cx="82" cy="72" r="24" fill="#b5502e"/>
+            <circle cx="55" cy="68" r="15" fill="#c96a45"/>
+            <circle cx="34" cy="60" r="14" fill="#b5502e"/><circle cx="30" cy="57" r="2" fill="#fff"/><circle cx="38" cy="57" r="2" fill="#fff"/>
+            <path d="M28 50 Q18 38 10 36 M40 50 Q42 36 50 30" stroke="#b5502e" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="num">CH 5</div><div class="name">Ant colony</div><div class="hook">Multi-tenant, RBAC, billing</div>
+      </a>
+      <span class="journey-arrow">→</span>
+
+      <a class="journey-stop" href="chapter-6-aws-cicd.html">
+        <div class="icon-sm">
+          <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#2f8a7a" stroke-width="8" fill="none" stroke-linecap="round">
+              <path d="M35 75 Q20 90 26 108"/><path d="M45 82 Q38 100 46 114"/><path d="M60 85 Q60 102 60 116"/>
+              <path d="M75 82 Q82 100 74 114"/><path d="M85 75 Q100 90 94 108"/>
+            </g>
+            <ellipse cx="60" cy="55" rx="38" ry="32" fill="#3aa393"/>
+            <circle cx="47" cy="52" r="9" fill="#fff"/><circle cx="73" cy="52" r="9" fill="#fff"/>
+            <circle cx="47" cy="52" r="4" fill="#2b2620"/><circle cx="73" cy="52" r="4" fill="#2b2620"/>
+          </svg>
+        </div>
+        <div class="num">CH 6</div><div class="name">Octopus</div><div class="hook">AWS ECS &amp; CI/CD</div>
+      </a>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>System Architecture</h2><span class="tag">Block diagram</span></div>
+    <p class="section-note">The whole platform in one picture — what talks to what.</p>
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#2f6b4f"/>
+          </marker>
+        </defs>
+
+        <rect class="node-box" x="40" y="20" width="150" height="56" rx="10"/>
+        <text class="node-label" x="115" y="44" text-anchor="middle">🧑‍💻 Browser</text>
+        <text class="node-sub" x="115" y="62" text-anchor="middle">Next.js dashboard</text>
+
+        <rect class="node-box" x="530" y="20" width="150" height="56" rx="10"/>
+        <text class="node-label" x="605" y="44" text-anchor="middle">🐙 GitHub</text>
+        <text class="node-sub" x="605" y="62" text-anchor="middle">PR + webhook events</text>
+
+        <rect class="node-box alt" x="285" y="120" width="150" height="56" rx="10"/>
+        <text class="node-label" x="360" y="144" text-anchor="middle">ALB</text>
+        <text class="node-sub" x="360" y="162" text-anchor="middle">path routing + sticky WS</text>
+
+        <rect class="node-box" x="90" y="220" width="150" height="56" rx="10"/>
+        <text class="node-label" x="165" y="244" text-anchor="middle">ECS: Frontend</text>
+        <text class="node-sub" x="165" y="262" text-anchor="middle">Next.js tasks (autoscaled)</text>
+
+        <rect class="node-box" x="480" y="220" width="150" height="56" rx="10"/>
+        <text class="node-label" x="555" y="244" text-anchor="middle">ECS: Backend</text>
+        <text class="node-sub" x="555" y="262" text-anchor="middle">FastAPI tasks (autoscaled)</text>
+
+        <rect class="node-box alt" x="380" y="320" width="100" height="56" rx="10"/>
+        <text class="node-label" x="430" y="344" text-anchor="middle">RDS</text>
+        <text class="node-sub" x="430" y="362" text-anchor="middle">Postgres</text>
+
+        <rect class="node-box alt" x="500" y="320" width="100" height="56" rx="10"/>
+        <text class="node-label" x="550" y="344" text-anchor="middle">Redis</text>
+        <text class="node-sub" x="550" y="362" text-anchor="middle">cache + pub/sub</text>
+
+        <rect class="node-box alt" x="620" y="320" width="95" height="56" rx="10"/>
+        <text class="node-label" x="667" y="340" text-anchor="middle">OpenAI</text>
+        <text class="node-label" x="667" y="354" text-anchor="middle">Stripe</text>
+        <text class="node-sub" x="667" y="368" text-anchor="middle">external APIs</text>
+
+        <path class="flow-line" d="M130 76 L300 120" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M600 76 L420 120" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M320 176 L180 220" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M400 176 L540 220" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M540 276 L440 320" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M570 276 L555 320" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M600 276 L660 320" marker-end="url(#arr0)"/>
+        <path class="flow-line" d="M240 248 L480 248" stroke-dasharray="4 4" marker-end="url(#arr0)"/>
+        <text class="flow-label" x="360" y="240" text-anchor="middle">/api/*</text>
+      </svg>
+    </div>
+    <div class="diagram-caption">Browser and GitHub both hit the ALB; it routes by path to the frontend or backend
+      ECS service; the backend talks to Postgres, Redis, and the external APIs (GitHub/OpenAI/Stripe).</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Chapters</h2></div>
+    <div class="chapter-grid">
+
+      <a class="chapter-card" href="chapter-1-auth-db.html">
+        <div class="mini-icon"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><ellipse cx="30" cy="90" rx="10" ry="7" fill="#2f6b4f"/><ellipse cx="90" cy="90" rx="10" ry="7" fill="#2f6b4f"/><circle cx="60" cy="30" r="14" fill="#2f6b4f"/><ellipse cx="60" cy="68" rx="42" ry="34" fill="#e4efe8" stroke="#2f6b4f" stroke-width="4"/></svg></div>
+        <div><h3>1 · Turtle — Auth &amp; DB</h3><p>JWT design, bcrypt's slow-by-design hashing, async sessions in background tasks.</p></div>
+      </a>
+
+      <a class="chapter-card" href="chapter-2-oauth-webhooks.html">
+        <div class="mini-icon"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><ellipse cx="62" cy="72" rx="30" ry="24" fill="#3b6ea5"/><circle cx="86" cy="46" r="16" fill="#3b6ea5"/></svg></div>
+        <div><h3>2 · Pigeon — OAuth &amp; Webhooks</h3><p>Signed messages, HMAC timing attacks, idempotent webhook handling.</p></div>
+      </a>
+
+      <a class="chapter-card" href="chapter-3-ai-engine.html">
+        <div class="mini-icon"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="72" rx="34" ry="38" fill="#a5763b"/><circle cx="60" cy="58" r="30" fill="#f0e2c8"/><circle cx="48" cy="56" r="10" fill="#fff"/><circle cx="72" cy="56" r="10" fill="#fff"/><circle cx="48" cy="56" r="5" fill="#2b2620"/><circle cx="72" cy="56" r="5" fill="#2b2620"/></svg></div>
+        <div><h3>3 · Owl — AI Review Engine</h3><p>Structured JSON over prose, defensive parsing against LLM output drift.</p></div>
+      </a>
+
+      <a class="chapter-card" href="chapter-4-websockets.html">
+        <div class="mini-icon"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><ellipse cx="60" cy="70" rx="26" ry="32" fill="#f3c94d"/><path d="M36 58 Q60 66 84 58" stroke="#2b2620" stroke-width="7" fill="none" stroke-linecap="round"/><circle cx="60" cy="34" r="14" fill="#2b2620"/></svg></div>
+        <div><h3>4 · Bee — Real-Time WebSockets</h3><p>Redis pub/sub fan-out so events reach the right replica, every time.</p></div>
+      </a>
+
+      <a class="chapter-card" href="chapter-5-multitenant-billing.html">
+        <div class="mini-icon"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><circle cx="82" cy="72" r="24" fill="#b5502e"/><circle cx="55" cy="68" r="15" fill="#c96a45"/><circle cx="34" cy="60" r="14" fill="#b5502e"/></svg></div>
+        <div><h3>5 · Ant Colony — Multi-Tenant, RBAC, Billing</h3><p>Owner/admin/member enforcement, Stripe metadata, and a real bug I found.</p></div>
+      </a>
+
+      <a class="chapter-card" href="chapter-6-aws-cicd.html">
+        <div class="mini-icon"><svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg"><g stroke="#2f8a7a" stroke-width="8" fill="none" stroke-linecap="round"><path d="M35 75 Q20 90 26 108"/><path d="M60 85 Q60 102 60 116"/><path d="M85 75 Q100 90 94 108"/></g><ellipse cx="60" cy="55" rx="38" ry="32" fill="#3aa393"/></svg></div>
+        <div><h3>6 · Octopus — AWS ECS &amp; CI/CD</h3><p>Auto-scaling, the NEXT_PUBLIC build-arg gotcha, why deploy is manual.</p></div>
+      </a>
+
+    </div>
+  </section>
+
+  <p class="section-note" style="text-align:center;">
+    Full raw text version (no visuals) also lives at
+    <a href="../../INTERVIEW_PREP.md">INTERVIEW_PREP.md</a> in the repo root.
+  </p>
+
+</div>
+</body>
+</html>

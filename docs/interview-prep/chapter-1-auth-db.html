@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch.1 Turtle — Auth &amp; DB · Interview Field Guide</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #2f6b4f; --accent-soft: #e4efe8; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap"><a href="index.html">← Overview</a><span class="crumb">Chapter 1 of 6</span></div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="icon">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="30" cy="90" rx="10" ry="7" fill="#2f6b4f"/><ellipse cx="90" cy="90" rx="10" ry="7" fill="#2f6b4f"/>
+        <ellipse cx="24" cy="55" rx="9" ry="7" fill="#2f6b4f"/><ellipse cx="96" cy="55" rx="9" ry="7" fill="#2f6b4f"/>
+        <path d="M60 100 q6 10 14 8" stroke="#2f6b4f" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <circle cx="60" cy="30" r="14" fill="#2f6b4f"/><circle cx="55" cy="27" r="2.2" fill="#fff"/><circle cx="65" cy="27" r="2.2" fill="#fff"/>
+        <ellipse cx="60" cy="68" rx="42" ry="34" fill="#e4efe8" stroke="#2f6b4f" stroke-width="4"/>
+        <path d="M60 40 L38 55 L38 82 L60 96 L82 82 L82 55 Z" fill="none" stroke="#2f6b4f" stroke-width="2.5"/>
+        <path d="M60 40 L60 96 M38 55 L82 82 M82 55 L38 82" stroke="#2f6b4f" stroke-width="2"/>
+      </svg>
+    </div>
+    <div class="text">
+      <div class="eyebrow">Chapter 1</div>
+      <h1>🐢 The Turtle — Auth &amp; Database</h1>
+      <p class="sub">FastAPI · SQLAlchemy 2.0 async · PostgreSQL · JWT (HS256) · bcrypt</p>
+    </div>
+  </div>
+
+  <div class="anchor-box">
+    <div class="label">Memory anchor</div>
+    <p class="mnemonic">A turtle carries its home on its back and never rushes.</p>
+    <p>The <strong>shell</strong> is the hashed password — hard on the outside, protects the soft data inside,
+    and you can never crack it open to see the original. The turtle's <strong>slowness</strong> is bcrypt being
+    deliberately, adjustably slow, so brute-forcing a password is expensive on purpose. And the turtle
+    <strong>carrying its house wherever it goes</strong> is the user's data always traveling with a signed JWT,
+    not a session pinned to one server.</p>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>Block diagram</h2><span class="tag">Login flow</span></div>
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 280" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#2f6b4f"/>
+          </marker>
+        </defs>
+        <rect class="node-box" x="20" y="90" width="130" height="60" rx="10"/>
+        <text class="node-label" x="85" y="116" text-anchor="middle">Browser</text>
+        <text class="node-sub" x="85" y="134" text-anchor="middle">email + password</text>
+
+        <rect class="node-box" x="190" y="90" width="160" height="60" rx="10"/>
+        <text class="node-label" x="270" y="116" text-anchor="middle">POST /auth/login</text>
+        <text class="node-sub" x="270" y="134" text-anchor="middle">FastAPI endpoint</text>
+
+        <rect class="node-box" x="390" y="90" width="130" height="60" rx="10"/>
+        <text class="node-label" x="455" y="116" text-anchor="middle">bcrypt.verify()</text>
+        <text class="node-sub" x="455" y="134" text-anchor="middle">security.py</text>
+
+        <rect class="node-box alt" x="560" y="90" width="140" height="60" rx="10"/>
+        <text class="node-label" x="630" y="116" text-anchor="middle">Postgres</text>
+        <text class="node-sub" x="630" y="134" text-anchor="middle">users table</text>
+
+        <rect class="node-box alt" x="190" y="200" width="160" height="60" rx="10"/>
+        <text class="node-label" x="270" y="226" text-anchor="middle">Issue JWT</text>
+        <text class="node-sub" x="270" y="244" text-anchor="middle">access + refresh</text>
+
+        <path class="flow-line" d="M150 120 L190 120" marker-end="url(#a1)"/>
+        <path class="flow-line" d="M350 120 L390 120" marker-end="url(#a1)"/>
+        <path class="flow-line" d="M520 120 L560 120" marker-end="url(#a1)"/>
+        <path class="flow-line" d="M270 150 L270 200" marker-end="url(#a1)"/>
+        <path class="flow-line" d="M190 220 Q90 220 85 150" stroke-dasharray="5 4" marker-end="url(#a1)"/>
+        <text class="flow-label" x="90" y="185" text-anchor="middle">stores token</text>
+      </svg>
+    </div>
+    <div class="diagram-caption">The password never round-trips — only the hash comparison happens server-side,
+      and the browser only ever receives back a signed token.</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Easy</h2></div>
+    <div class="qa-group easy">
+      <details class="qa">
+        <summary>Why JWT instead of server-side sessions?</summary>
+        <div class="body"><p>Stateless — no session store to keep in sync once you have multiple backend
+        replicas (which this app does, behind the ALB in Chapter 6). The token carries the user id
+        (<strong class="k">sub</strong> claim) and an expiry; any replica can verify it without a shared session table.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Access token vs refresh token — why two?</summary>
+        <div class="body"><p>Access tokens are short-lived (24h here) and sent on every request, so keeping them
+        short limits the damage if one leaks. The refresh token (30 days) is only sent to
+        <strong class="k">/auth/refresh</strong> to mint a new access token, so it's exposed far less often.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Where are passwords hashed?</summary>
+        <div class="body"><p><strong class="k">security.py</strong>, using passlib's
+        <strong class="k">CryptContext(schemes=["bcrypt"])</strong>. Bcrypt is deliberately slow (adaptive cost
+        factor) to make brute-forcing expensive — the standard choice over something fast like SHA-256, which is
+        the wrong tool for password storage.</p></div>
+      </details>
+      <details class="qa">
+        <summary>What's <code>CREDENTIALS_EXCEPTION</code>?</summary>
+        <div class="body"><p>A shared 401 raised for any auth failure — expired token, malformed token, wrong
+        token type, user not found. Returning the same generic message for all of these is intentional: you
+        don't want the API telling an attacker whether a specific account exists vs. whether their token is
+        just malformed.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Medium</h2></div>
+    <div class="qa-group medium">
+      <details class="qa">
+        <summary>Walk me through what happens when a request hits a protected endpoint.</summary>
+        <div class="body"><p>FastAPI's dependency injection resolves <strong class="k">Depends(get_current_user)</strong>.
+        That pulls the <strong class="k">Authorization: Bearer</strong> header, decodes it (verifies signature +
+        expiry), checks <strong class="k">payload["type"] == "access"</strong> so a refresh token can't be used
+        as an access token, extracts <strong class="k">sub</strong> as the user id, then loads the User row from
+        Postgres. Every layer can fail with a 401/403 independently.</p></div>
+      </details>
+      <details class="qa">
+        <summary>Why check the token type explicitly instead of trusting any valid signature?</summary>
+        <div class="body"><p>Both token types are signed with the same secret and would both pass signature
+        verification. Without the type check, a leaked refresh token (30-day lifetime) could be used directly as
+        an API credential instead of only being exchangeable for a short-lived access token — that defeats the
+        entire point of having two token types.</p></div>
+      </details>
+      <details class="qa">
+        <summary>bcrypt has a 72-byte input limit. How is that handled here?</summary>
+        <div class="body"><p><strong class="k">hash_password()</strong> explicitly checks the byte length and
+        raises a 422 before it reaches passlib. Without this, bcrypt silently truncates the password — meaning
+        a password plus anything past byte 72 all hash to the same value. A subtle bug because it doesn't error,
+        it just quietly does the wrong thing.</p></div>
+      </details>
+      <details class="qa">
+        <summary>The Organization tables existed since Phase 1 but weren't used until Phase 5. Why build schema early?</summary>
+        <div class="body"><p>Judgment call, not a rule — it pays off when the shape is already well understood
+        (an org has members, members have one of three roles) and low-risk to get right early. Phase 5 ended up
+        mostly wiring endpoints and RBAC checks against a schema that was already correct, instead of designing +
+        migrating + wiring in the same PR.</p></div>
+      </details>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Challenge</h2><span class="tag">Situation → Solution → Trade-off → Benefit</span></div>
+    <div class="qa-group challenge">
+      <details class="qa">
+        <summary>Async DB sessions and fire-and-forget background tasks don't mix safely</summary>
+        <div class="body challenge-body">
+          <dl>
+            <dt>Situation</dt>
+            <dd>FastAPI's <strong class="k">Depends(get_db)</strong> yields a session scoped to one HTTP request
+            and closes it after. The AI review worker runs as a detached <strong class="k">asyncio.create_task</strong>,
+            outliving the request that triggered it — so it can't reuse the request-scoped session.</dd>
+            <dt>Solution</dt>
+            <dd>The worker opens its own session directly from <strong class="k">AsyncSessionFactory()</strong>
+            instead of going through the <strong class="k">get_db</strong> dependency.</dd>
+            <dt>Trade-off</dt>
+            <dd>Two different session-acquisition patterns exist side by side in the codebase — a new contributor
+            has to know why they're different, since it's not visually obvious that one runs inside a request
+            lifecycle and the other doesn't.</dd>
+            <dt>Benefit</dt>
+            <dd>The background job's DB session lives exactly as long as the job does — no risk of a route
+            handler's <strong class="k">finally: await session.close()</strong> yanking the connection out from
+            under a task that's still running.</dd>
+          </dl>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <div class="footer-nav">
+    <span></span>
+    <a href="chapter-2-oauth-webhooks.html">Chapter 2 — Pigeon: OAuth &amp; Webhooks →</a>
+  </div>
+
+</div>
+</body>
+</html>
