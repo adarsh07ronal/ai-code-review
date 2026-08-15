@@ -21,6 +21,7 @@ from app.models.review import CodeReview, PRStatus, PullRequest, Repository
 from app.models.user import User
 from app.services.ai_service import ai_service
 from app.services.github_service import github_service
+from app.services.ws_manager import ws_manager
 
 log = structlog.get_logger()
 
@@ -70,6 +71,12 @@ class ReviewWorker:
         await db.flush()
 
         log.info("Starting review", repo=repo.full_name, pr=pr.github_pr_number)
+        await ws_manager.publish(owner.id, "pr_status", {
+            "pr_id": pr.id,
+            "status": "reviewing",
+            "repo": repo.full_name,
+            "pr_number": pr.github_pr_number,
+        })
 
         # 3. Fetch the PR diff
         diff = await github_service.get_pr_diff(
@@ -140,6 +147,17 @@ class ReviewWorker:
             warnings=warnings,
             tokens=review_data.get("tokens_used", 0),
         )
+        await ws_manager.publish(owner.id, "review_completed", {
+            "pr_id": pr.id,
+            "review_id": code_review.id,
+            "repo": repo.full_name,
+            "pr_number": pr.github_pr_number,
+            "summary": review_data.get("summary"),
+            "overall_quality": review_data.get("overall_quality"),
+            "critical_count": critical,
+            "warning_count": warnings,
+            "info_count": infos,
+        })
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -151,9 +169,23 @@ class ReviewWorker:
         async with AsyncSessionFactory() as db:
             result = await db.execute(select(PullRequest).where(PullRequest.id == pr_id))
             pr = result.scalar_one_or_none()
-            if pr:
-                pr.status = PRStatus.FAILED
-                await db.commit()
+            if not pr:
+                return
+            pr.status = PRStatus.FAILED
+
+            repo_result = await db.execute(
+                select(Repository).where(Repository.id == pr.repository_id)
+            )
+            repo = repo_result.scalar_one_or_none()
+            await db.commit()
+
+            if repo:
+                await ws_manager.publish(repo.owner_id, "review_failed", {
+                    "pr_id": pr_id,
+                    "repo": repo.full_name,
+                    "pr_number": pr.github_pr_number,
+                    "error": error,
+                })
 
     def _format_github_comment(self, review_data: dict, pr_number: int) -> str:
         """Format the AI review as a readable GitHub PR comment (Markdown)."""

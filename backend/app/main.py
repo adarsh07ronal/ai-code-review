@@ -10,6 +10,7 @@ from app.core.config import settings
 from app.api.v1 import api_router
 from app.db.session import init_db
 from app.db.redis import close_redis
+from app.services.ws_manager import ws_manager
 
 log = structlog.get_logger()
 
@@ -19,7 +20,9 @@ async def lifespan(app: FastAPI):
     log.info("Starting up", environment=settings.ENVIRONMENT)
     if not settings.is_production:
         await init_db()   # dev-only auto-create; use Alembic in prod
+    await ws_manager.start_listener()
     yield
+    await ws_manager.stop_listener()
     await close_redis()
     log.info("Shutdown complete")
 
