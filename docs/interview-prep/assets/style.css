@@ -60,6 +60,8 @@ a:hover { text-decoration: none; }
 }
 .topbar a:hover { opacity: 1; text-decoration: underline; }
 .topbar .crumb { font-size: 13px; opacity: 0.85; }
+.topbar .nav-links { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.topbar .nav-links a.current { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
 
 /* ── Hero ────────────────────────────────────────────────────────────── */
 
@@ -312,3 +314,100 @@ details.qa .body strong.k { color: var(--ink); }
 }
 .legend span { display: inline-flex; align-items: center; gap: 6px; }
 .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; background: var(--accent); }
+
+/* ── System design page: subsystem cards ────────────────────────────── */
+
+.subsystem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin: 18px 0 8px;
+}
+.subsystem-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+}
+.subsystem-card h3 { font-size: 15px; margin-bottom: 6px; }
+.subsystem-card .purpose { font-size: 13px; color: var(--ink-soft); margin: 0 0 10px; }
+.subsystem-card .meta { font-size: 12px; color: var(--ink-soft); }
+.subsystem-card .meta code {
+  background: var(--accent-soft);
+  color: var(--accent);
+  padding: 1px 6px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+.subsystem-card a.go { font-size: 12px; font-weight: 700; display: inline-block; margin-top: 10px; }
+
+/* ── Status pill (current vs. verified vs. gap) ─────────────────────── */
+
+.pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.06em; padding: 2px 9px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
+.pill.live { background: #dcefe3; color: #2f6b4f; }
+.pill.gap { background: #f7ddd3; color: #a5432f; }
+.pill.partial { background: #f7ecd3; color: #a5763b; }
+
+/* ── Limitations table ───────────────────────────────────────────────── */
+
+.limits-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  font-size: 13.5px;
+}
+.limits-table th {
+  text-align: left;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 14px;
+}
+.limits-table td {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--ink-soft);
+}
+.limits-table td.what { color: var(--ink); font-weight: 600; }
+.limits-table tr:hover td { background: var(--accent-soft); }
+
+/* ── Priority list ───────────────────────────────────────────────────── */
+
+.priority-list { list-style: none; margin: 18px 0; padding: 0; counter-reset: pnum; }
+.priority-list li {
+  counter-increment: pnum;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px 14px 52px;
+  margin-bottom: 10px;
+  position: relative;
+  box-shadow: var(--shadow);
+}
+.priority-list li::before {
+  content: counter(pnum);
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.priority-list strong { display: block; margin-bottom: 3px; }
+.priority-list span.why { color: var(--ink-soft); font-size: 13.5px; }

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>System Design Overview · Interview Field Guide</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>:root { --accent: #5b3a8a; --accent-soft: #ece3f5; }</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="nav-links">
+      <a href="index.html">← Overview</a>
+      <a href="system-design.html" class="current">System Design</a>
+    </div>
+    <span class="crumb">Cross-cutting</span>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="hero" style="padding-top:40px;">
+    <div class="text">
+      <div class="eyebrow">System Design</div>
+      <h1>How it actually fits together — and where it doesn't yet</h1>
+      <p class="sub">Not another mnemonic — this page is the honest version: what each subsystem does, how a
+      request actually flows through all of them today, and a straight list of the gaps between "how it's
+      described" and "how it's built." Good for the "walk me through your architecture" question.</p>
+    </div>
+  </div>
+
+  <section class="block">
+    <div class="section-title"><h2>Subsystems</h2></div>
+    <p class="section-note">Six pieces, six purposes. Each links back to its chapter for the deep-dive Q&amp;A.</p>
+    <div class="subsystem-grid">
+
+      <div class="subsystem-card">
+        <h3>🐢 Auth &amp; Identity</h3>
+        <p class="purpose">Who is making this request, and are they who they say they are. JWT issuance,
+        password hashing, GitHub OAuth identity linking.</p>
+        <p class="meta"><code>security.py</code> <code>auth_service.py</code> <code>dependencies.py</code></p>
+        <a class="go" href="chapter-1-auth-db.html">Chapter 1 →</a>
+      </div>
+
+      <div class="subsystem-card">
+        <h3>🐦 Webhook Ingestion</h3>
+        <p class="purpose">The front door for events from GitHub. Verifies authenticity, persists the PR,
+        hands off to processing without blocking the response.</p>
+        <p class="meta"><code>github.py</code> <code>github_service.py</code></p>
+        <a class="go" href="chapter-2-oauth-webhooks.html">Chapter 2 →</a>
+      </div>
+
+      <div class="subsystem-card">
+        <h3>🦉 AI Review Engine</h3>
+        <p class="purpose">The actual product. Turns a diff into structured findings, persists them, and posts
+        them back to GitHub as a review comment.</p>
+        <p class="meta"><code>ai_service.py</code> <code>review_worker.py</code></p>
+        <a class="go" href="chapter-3-ai-engine.html">Chapter 3 →</a>
+      </div>
+
+      <div class="subsystem-card">
+        <h3>🐝 Real-Time Delivery</h3>
+        <p class="purpose">Pushes pipeline status to the dashboard as it happens, correctly, regardless of which
+        backend replica is doing the work.</p>
+        <p class="meta"><code>ws_manager.py</code> <code>ws.py</code> <code>useReviewEvents.ts</code></p>
+        <a class="go" href="chapter-4-websockets.html">Chapter 4 →</a>
+      </div>
+
+      <div class="subsystem-card">
+        <h3>🐜 Multi-Tenancy, RBAC &amp; Billing</h3>
+        <p class="purpose">Who belongs to which org, what they're allowed to do there, and what tier they're
+        paying for.</p>
+        <p class="meta"><code>organizations.py</code> <code>billing_service.py</code></p>
+        <a class="go" href="chapter-5-multitenant-billing.html">Chapter 5 →</a>
+      </div>
+
+      <div class="subsystem-card">
+        <h3>🐙 Infra &amp; Delivery</h3>
+        <p class="purpose">Where all of the above actually runs: compute, networking, secrets, scaling, and how
+        a code change gets from a PR to production.</p>
+        <p class="meta"><code>infra/terraform/</code> <code>.github/workflows/</code></p>
+        <a class="go" href="chapter-6-aws-cicd.html">Chapter 6 →</a>
+      </div>
+
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Current flow, step by step</h2><span class="tag">PR opened → review delivered</span></div>
+    <p class="section-note">This is the real path a request takes today — including the parts that aren't as
+    robust as the words "queue" or "cache" might imply. Diagram below, callouts after.</p>
+
+    <div class="diagram-card">
+      <svg viewBox="0 0 720 380" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="asd" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0 0 L10 5 L0 10 z" fill="#5b3a8a"/>
+          </marker>
+        </defs>
+
+        <rect class="node-box" x="10" y="20" width="210" height="64" rx="10"/>
+        <text class="node-label" x="115" y="46" text-anchor="middle">1 · GitHub webhook</text>
+        <text class="node-sub" x="115" y="64" text-anchor="middle">HMAC verified</text>
+
+        <rect class="node-box" x="255" y="20" width="210" height="64" rx="10"/>
+        <text class="node-label" x="360" y="46" text-anchor="middle">2 · Postgres upsert</text>
+        <text class="node-sub" x="360" y="64" text-anchor="middle">PullRequest, status=PENDING</text>
+
+        <rect class="node-box alt" x="500" y="20" width="210" height="64" rx="10"/>
+        <text class="node-label" x="605" y="42" text-anchor="middle">3 · asyncio.create_task</text>
+        <text class="node-sub" x="605" y="58" text-anchor="middle">NOT a real queue —</text>
+        <text class="node-sub" x="605" y="72" text-anchor="middle">no concurrency cap</text>
+
+        <rect class="node-box" x="10" y="140" width="210" height="64" rx="10"/>
+        <text class="node-label" x="115" y="166" text-anchor="middle">4 · status=REVIEWING</text>
+        <text class="node-sub" x="115" y="184" text-anchor="middle">+ Redis PUBLISH (live nudge)</text>
+
+        <rect class="node-box" x="255" y="140" width="210" height="64" rx="10"/>
+        <text class="node-label" x="360" y="166" text-anchor="middle">5 · Fetch diff</text>
+        <text class="node-sub" x="360" y="184" text-anchor="middle">GitHub API</text>
+
+        <rect class="node-box alt" x="500" y="140" width="210" height="64" rx="10"/>
+        <text class="node-label" x="605" y="166" text-anchor="middle">6 · GPT-4o</text>
+        <text class="node-sub" x="605" y="184" text-anchor="middle">structured findings JSON</text>
+
+        <rect class="node-box" x="10" y="260" width="210" height="64" rx="10"/>
+        <text class="node-label" x="115" y="286" text-anchor="middle">7 · Postgres write</text>
+        <text class="node-sub" x="115" y="304" text-anchor="middle">CodeReview row persisted</text>
+
+        <rect class="node-box" x="255" y="260" width="210" height="64" rx="10"/>
+        <text class="node-label" x="360" y="286" text-anchor="middle">8 · GitHub PR comment</text>
+        <text class="node-sub" x="360" y="304" text-anchor="middle">Markdown, best-effort</text>
+
+        <rect class="node-box alt" x="500" y="260" width="210" height="64" rx="10"/>
+        <text class="node-label" x="605" y="282" text-anchor="middle">9 · status=COMPLETED</text>
+        <text class="node-sub" x="605" y="298" text-anchor="middle">+ Redis PUBLISH</text>
+        <text class="node-sub" x="605" y="312" text-anchor="middle">→ dashboard updates live</text>
+
+        <path class="flow-line" d="M220 52 L255 52" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M465 52 L500 52" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M605 84 Q605 112 115 140" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M220 172 L255 172" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M465 172 L500 172" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M605 204 Q605 232 115 260" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M220 292 L255 292" marker-end="url(#asd)"/>
+        <path class="flow-line" d="M465 292 L500 292" marker-end="url(#asd)"/>
+
+        <rect x="10" y="345" width="700" height="28" rx="6" fill="none" stroke="#a5432f" stroke-dasharray="4 4"/>
+        <text x="360" y="363" text-anchor="middle" font-size="12" fill="#a5432f" font-weight="700">
+          Steps 3 and 9 are the two spots where the "system design" claims and the actual code diverge — see below
+        </text>
+      </svg>
+    </div>
+    <div class="diagram-caption">Nine steps, three subsystems doing the work (webhook receiver, review worker,
+      real-time layer) plus two shared stores (Postgres for durable state, Redis for the live nudge).</div>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>Where the description and the code disagree</h2><span class="tag">Say these out loud unprompted — it lands better than waiting to be asked</span></div>
+    <table class="limits-table">
+      <thead>
+        <tr><th style="width:22%">What's claimed</th><th style="width:22%">What's actually built</th><th>Why it's fine for now / what closing the gap looks like</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="what">"Review request goes to a queue, processed one by one" <span class="pill gap">Gap</span></td>
+          <td><code>asyncio.create_task()</code> per PR — unbounded, concurrent, in-process</td>
+          <td>Fine at low volume. At real volume, a burst of PRs all hit OpenAI's rate limit simultaneously with
+          no backpressure. Close the gap with SQS/Celery, or at minimum an <code>asyncio.Semaphore</code>
+          capping concurrent reviews.</td>
+        </tr>
+        <tr>
+          <td class="what">"Redis caching" <span class="pill gap">Gap</span></td>
+          <td>Redis is provisioned and connected, but the only thing actually using it is the WebSocket
+          pub/sub channel — nothing is cached</td>
+          <td>Not broken, just inaccurately described. Real opportunity: cache the GitHub diff fetch or dedupe
+          identical-diff AI calls. Otherwise, fix the docs to say "pub/sub bus," not "cache."</td>
+        </tr>
+        <tr>
+          <td class="what">Webhook URL registration <span class="pill gap">Gap</span></td>
+          <td><code>install_webhook()</code> hardcodes <code>http://localhost:8000/...</code> unconditionally,
+          overwriting the environment-aware URL computed one line above it</td>
+          <td>Works only when GitHub can reach literal <code>localhost</code> — i.e. never, without a tunnel.
+          Fix: read the public base URL from settings (ALB DNS / domain in prod, ngrok URL in dev) instead of
+          hardcoding.</td>
+        </tr>
+        <tr>
+          <td class="what">Live dashboard updates <span class="pill partial">Partial</span></td>
+          <td>WebSocket + Redis pub/sub, fire-and-forget — no delivery guarantee if no replica is subscribed
+          at publish time</td>
+          <td>Acceptable because Postgres is the source of truth — a missed live nudge just means the user sees
+          the correct state on next load instead of instantly. Would need Redis Streams or a queue only if the
+          push itself had to be guaranteed.</td>
+        </tr>
+        <tr>
+          <td class="what">GitHub access token storage <span class="pill gap">Gap</span></td>
+          <td>Stored as plaintext <code>Text</code> column on the <code>users</code> row</td>
+          <td>A DB compromise leaks every connected user's GitHub access directly. Encrypt at rest (application-
+          level envelope encryption, or move to Secrets Manager / KMS per-user) before this touches real users.</td>
+        </tr>
+        <tr>
+          <td class="what">Failed reviews <span class="pill gap">Gap</span></td>
+          <td>PR flips to <code>FAILED</code> and stays there — no automatic retry, no dead-letter handling</td>
+          <td>A transient OpenAI or GitHub API hiccup permanently strands that PR until someone notices and
+          manually re-triggers it. Add retry-with-backoff for transient errors, or a "retry" action in the UI.</td>
+        </tr>
+        <tr>
+          <td class="what">Auto-scaling infra <span class="pill live">Live</span></td>
+          <td>Target-tracking on CPU, memory, and ALB requests-per-target — validated with <code>terraform plan</code>, never deployed to a real account</td>
+          <td>Config is internally consistent; IAM boundaries, quotas, and AZ availability can only be confirmed
+          on a real <code>apply</code>. Say this plainly if asked — don't claim it's running in production.</td>
+        </tr>
+        <tr>
+          <td class="what">Observability <span class="pill gap">Gap</span></td>
+          <td><code>structlog</code> to CloudWatch Logs — no metrics dashboards, no alarms, no tracing</td>
+          <td>A failure is invisible until someone reads logs or a user complains. Add CloudWatch alarms on ECS
+          task failures / ALB 5xx rate, and basic request tracing across the webhook → worker → WebSocket path.</td>
+        </tr>
+        <tr>
+          <td class="what">Automated tests <span class="pill gap">Gap</span></td>
+          <td>None in the repo — every verification in this project (including the auth-guard race bug) was
+          manual, exploratory QA against a running stack</td>
+          <td>Manual QA found a real bug, which is a fine story to tell — but it doesn't scale and won't catch a
+          regression next time. Add pytest for the backend (RBAC boundaries, webhook idempotency are the highest-
+          value first tests) and basic component tests for the two auth-guarded frontend flows.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="block">
+    <div class="section-title"><h2>If I had one more sprint</h2><span class="tag">Prioritized</span></div>
+    <p class="section-note">Ranked by risk-to-users, not by what's most interesting to build.</p>
+    <ol class="priority-list">
+      <li>
+        <strong>Cap concurrent AI reviews</strong>
+        <span class="why">Highest real risk — a burst of PRs can silently degrade or fail reviews via OpenAI
+        rate limits with zero visibility into why. A single <code>asyncio.Semaphore</code> is a half-day fix;
+        a real queue is the "correct" version if traffic actually grows.</span>
+      </li>
+      <li>
+        <strong>Fix the hardcoded webhook URL</strong>
+        <span class="why">As written, webhook registration cannot work in any real environment, including the
+        production infra this project just built in Chapter 6. Small fix, large functional gap.</span>
+      </li>
+      <li>
+        <strong>Encrypt stored GitHub tokens</strong>
+        <span class="why">The one item on this list that's a security issue, not a reliability one — worth
+        fixing before any real user's GitHub account is connected.</span>
+      </li>
+      <li>
+        <strong>Add retry for failed reviews</strong>
+        <span class="why">Turns a permanent, silent failure into a transient, self-healing one. Directly
+        improves the thing users actually experience.</span>
+      </li>
+      <li>
+        <strong>Backend RBAC + webhook idempotency tests</strong>
+        <span class="why">The two areas already proven to matter this session — RBAC boundaries were manually
+        verified once, webhook idempotency was designed for but never regression-tested. Codify both so they
+        can't silently break later.</span>
+      </li>
+    </ol>
+  </section>
+
+  <div class="footer-nav">
+    <a href="index.html">← Back to Overview</a>
+    <a href="chapter-1-auth-db.html">Start at Chapter 1 — Turtle →</a>
+  </div>
+
+</div>
+</body>
+</html>
